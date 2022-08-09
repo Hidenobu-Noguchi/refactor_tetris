@@ -1,343 +1,318 @@
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
 #include <ncurses.h>
 
-#define ROW 20 // height of game table ROW
-#define COLUMN 15 // width of game table CLUMN
-#define	MINO_TYPES 7
-#define TRUE 1
-#define FALSE 0
+#define HEIGHT 20
+#define WIDTH  15
+#define TETRIS 4
+#define N_SHAPE	7
 
-char		game_field[ROW][COLUMN] = {0};
-int			get_score = 0;
-char		now_game = TRUE;
-suseconds_t	timer = 400000; // suseconds_t is signed int. express the time. micro seconds
-int			decrease = 1000;
+typedef	unsigned char	t_field[HEIGHT][WIDTH];
+typedef	unsigned char	t_field_row[WIDTH];
+
+typedef	unsigned char	t_mino_array[TETRIS][TETRIS];
 
 typedef struct {
-    char **shape;
-    int width, row, col;
-} t_mino;
+	t_mino_array	array;
+	int			size;
+} t_mino_shape;
 
-t_mino current;
+typedef struct {
+	int	x;
+	int	y;
+} t_point;
 
-// blocks
-const t_mino minos[MINO_TYPES]= {
-	// . # # | # . .
-	// # # . | # # .
-	// . . . | . # .
-	{(char *[]){(char []){0,1,1},(char []){1,1,0}, (char []){0,0,0}}, 3},
-	// # # . | . # .
-	// . # # | # # .
-	// . . . | # . .
-	{(char *[]){(char []){1,1,0},(char []){0,1,1}, (char []){0,0,0}}, 3},
-	// . # . |
-	// # # # |
-	// . . . |
-	{(char *[]){(char []){0,1,0},(char []){1,1,1}, (char []){0,0,0}}, 3},
-	// . . #
-	// # # #
-	// . . .
-	{(char *[]){(char []){0,0,1},(char []){1,1,1}, (char []){0,0,0}}, 3},
-	// # . . 
-	// # # #
-	// . . .
-	{(char *[]){(char []){1,0,0},(char []){1,1,1}, (char []){0,0,0}}, 3},
-	// # #
-	// # #
-	{(char *[]){(char []){1,1},(char []){1,1}}, 2},
-	// . . . .
-	// # # # #
-	// . . . .
-	// . . . .
-	{(char *[]){(char []){0,0,0,0}, (char []){1,1,1,1}, (char []){0,0,0,0}, (char []){0,0,0,0}}, 4}
+typedef struct {
+	t_mino_shape	shape;
+	t_point			pos;
+} t_tetrimino;
+
+t_tetrimino g_current = {};
+t_field	g_field = {};
+int		g_score = 0;
+bool	g_GameOn = true;
+suseconds_t g_timer = 400000;
+suseconds_t g_timer_decrease = 1000;
+
+const t_mino_shape	k_shapes[N_SHAPE]= {
+	{
+		.array = {
+			{0,1,1,0},
+			{1,1,0,0},
+			{0,0,0,0},
+			{0,0,0,0},
+		},
+		.size = 3,
+	},
+	{
+		.array = {
+			{1,1,0,0},
+			{0,1,1,0},
+			{0,0,0,0},
+			{0,0,0,0},
+		},
+		.size = 3,
+	},
+	{
+		.array = {
+			{0,1,0,0},
+			{1,1,1,0},
+			{0,0,0,0},
+			{0,0,0,0},
+		},
+		.size = 3,
+	},
+	{
+		.array = {
+			{0,0,1,0},
+			{1,1,1,0},
+			{0,0,0,0},
+			{0,0,0,0},
+		},
+		.size = 3,
+	},
+	{
+		.array = {
+			{1,0,0,0},
+			{1,1,1,0},
+			{0,0,0,0},
+			{0,0,0,0},
+		},
+		.size = 3,
+	},
+	{
+		.array = {
+			{1,1,0,0},
+			{1,1,0,0},
+			{0,0,0,0},
+			{0,0,0,0},
+		},
+		.size = 2,
+	},
+	{
+		.array = {
+			{0,0,0,0},
+			{1,1,1,1},
+			{0,0,0,0},
+			{0,0,0,0},
+		},
+		.size = 4,
+	},
 };
 
-t_mino create_mino(t_mino mino){
-	t_mino new_mino = mino;
-	new_mino.shape = (char**)malloc(new_mino.width*sizeof(char*));
-    int row, column;
-    for(row = 0; row < new_mino.width; row++){
-		new_mino.shape[row] = (char*)malloc(new_mino.width*sizeof(char));
-		for(column = 0; column < new_mino.width; column++) {
-			new_mino.shape[row][column] = mino.shape[row][column];
-		}
-    }
-    return new_mino;
+
+
+
+t_tetrimino tetrimino_random(){
+	t_tetrimino new_mino;
+
+	new_mino.shape = (k_shapes[rand() % N_SHAPE]);
+	new_mino.pos.x = rand() % (WIDTH - new_mino.shape.size + 1);
+	new_mino.pos.y = 0;
+	return new_mino;
 }
 
-void delete_mino(t_mino mino){
-    int row;
-    for(row = 0; row < mino.width; row++){
-		free(mino.shape[row]);
-    }
-    free(mino.shape);
-}
-
-// Check Position (.)
-int FunctionCP(t_mino mino){
-	char **shape = mino.shape;
-	int i, j;
-	for(i = 0; i < mino.width;i++) {
-		for(j = 0; j < mino.width ;j++){
-			if((mino.col+j < 0 || mino.col+j >= COLUMN || mino.row+i >= ROW)){
-				if(shape[i][j])
-					return FALSE;
-				
+bool tetrimino_is_valid_place(t_tetrimino mino){
+	for (int j = 0; j < mino.shape.size; j++) {
+		for (int i = 0; i < mino.shape.size; i++){
+			if (!mino.shape.array[j][i]){
+				continue;
 			}
-			else if(game_field[mino.row+i][mino.col+j] && shape[i][j])
-				return FALSE;
+			if (mino.pos.x + i < 0
+				|| WIDTH <= mino.pos.x + i
+				|| HEIGHT <= mino.pos.y + j
+				|| g_field[mino.pos.y + j][mino.pos.x + i])
+			{
+				return false;
+			}
 		}
 	}
-	return TRUE;
+	return true;
 }
 
-// Remove Sharp (#) or shape
-void FunctionRS(t_mino shape){
-	t_mino temp = create_mino(shape);
-	int i, j, k, width;
-	width = shape.width;
-	for(i = 0; i < width ; i++){
-		for(j = 0, k = width-1; j < width ; j++, k--){
-				shape.shape[i][j] = temp.shape[k][i];
-		}
-	}
-	delete_mino(temp);
-}
-
-// print table
-void FunctionPT(){
-	char Buffer[ROW][COLUMN] = {0};
-	int i, j;
-	for(i = 0; i < current.width ;i++){
-		for(j = 0; j < current.width ; j++){
-			if(current.shape[i][j])
-				Buffer[current.row+i][current.col+j] = current.shape[i][j];
-		}
-	}
+void print_board(t_tetrimino mino){
 	clear();
-	for(i=0; i< COLUMN -9; i++)
-		printw(" ");
-	printw("42 Tetris\n");
-	for(i = 0; i < ROW ;i++){
-		for(j = 0; j < COLUMN ; j++){
-			printw("%c ", (game_field[i][j] + Buffer[i][j])? '#': '.');
+	t_field	buffer = {};
+	for (int j = 0; j < mino.shape.size; j++){
+		for (int i = 0; i < mino.shape.size; i++){
+			if (mino.shape.array[j][i])
+				buffer[mino.pos.y + j][mino.pos.x + i] = mino.shape.array[j][i];
+		}
+	}
+	printw("%*c42 Tetris\n", WIDTH-10, ' ');
+	for (int j = 0; j < HEIGHT; j++){
+		for (int i = 0; i < WIDTH; i++){
+			printw("%c ", (g_field[j][i] || buffer[j][i])? '#': '.');
 		}
 		printw("\n");
 	}
-	printw("\nScore: %d\n", get_score);
+	printw("\nScore: %d\n", g_score);
 }
 
-struct timeval before_now, now;
-/*
- * struct timeval {
- * 					long	tv_sec; // second
- * 					long	tv_usec; // micro second
- * }
-*/
-int hasToUpdate(){
-	return ((suseconds_t)(now.tv_sec*1000000 + now.tv_usec) -((suseconds_t)before_now.tv_sec*1000000 + before_now.tv_usec)) > timer;
+bool	hasToUpdate(struct timeval past){
+	struct timeval	now;
+
+	gettimeofday(&now, NULL);
+	return ((suseconds_t)(now.tv_sec * 1000000 + now.tv_usec) - (suseconds_t)(past.tv_sec * 1000000 + past.tv_usec)) > g_timer;
 }
 
-void set_timeout(int time) {
-	time = 1;
+void	init(){
+	srand(time(NULL));
+	initscr();
 	timeout(1);
+	g_score = 0;
+	g_current = tetrimino_random();
 }
 
-int main() {
-	/*
-	 * void	srand(unsigned int seed);
-	 * create random number seed
-	 * time_t	time(time_t* timer);
-	 * timer is output destination
-	 */
-    srand(time(0));
-    get_score = 0;
-    int c;
-	/*
-	 * WINDOW	initscr(void);
-	 * screen initialization and manipulation routines
-	 */
-    initscr();
-	/*
-	 * int	gettimeofday(struct timeval *restrict tv, struct timezone *restrict tz);
-	 * the function can get the time as well as a timezone.
-	 */
-	gettimeofday(&before_now, NULL);
-	set_timeout(1);
-
-	// Create new_block
-	t_mino new_shape = create_mino(minos[rand()%7]); // minos[0 ~ 6];
-    new_shape.col = rand()%(COLUMN-new_shape.width+1);
-    new_shape.row = 0;
-    delete_mino(current);
-	current = new_shape;
-	if(!FunctionCP(current)){
-		now_game = FALSE;
-	}
-
-	// print table
-    FunctionPT();
-
-	// now_game == TRUE == 1
-	while(now_game){
-		/*
-		 * int	getch();
-		 * get character from curses terminal keyboad
-		 */
-		if ((c = getch()) != ERR) {
-			// Create block
-			t_mino temp = create_mino(current);
-			switch(c){
-				case 's':
-					temp.row++;  //move down
-					if(FunctionCP(temp))
-						current.row++;
-					else {
-						int i, j;
-						for(i = 0; i < current.width ;i++){
-							for(j = 0; j < current.width ; j++){
-								if(current.shape[i][j])
-									game_field[current.row+i][current.col+j] = current.shape[i][j];
-							}
-						}
-						// erase # line
-						int n, m, sum, count=0;
-						for(n=0;n< ROW ;n++){
-							sum = 0;
-							for(m=0;m< COLUMN;m++) {
-								sum+= game_field[n][m];
-							}
-							if(sum== COLUMN){
-								count++;
-								int l, k;
-								for(k = n;k >=1;k--)
-									for(l=0;l< COLUMN ;l++)
-										game_field[k][l]= game_field[k-1][l];
-								for(l=0;l< COLUMN ;l++)
-									game_field[k][l]=0;
-								timer-=decrease--;
-							}
-						}
-
-						// count point
-						get_score += 100*count;
-
-						// Create new block
-						t_mino new_shape = create_mino(minos[rand()%7]);
-						new_shape.col = rand()%(COLUMN -new_shape.width+1);
-						new_shape.row = 0;
-						delete_mino(current);
-						current = new_shape;
-						if(!FunctionCP(current)){
-							now_game = FALSE;
-						}
-					}
-					break;
-
-				case 'd':
-					temp.col++;
-					if(FunctionCP(temp))
-						current.col++;
-					break;
-				case 'a':
-					temp.col--;
-					if(FunctionCP(temp))
-						current.col--;
-					break;
-				case 'w':
-					FunctionRS(temp);
-					if(FunctionCP(temp))
-						FunctionRS(current);
-					break;
-			}
-			// Delete Block (temp)
-			delete_mino(temp);
-			// Print Table
-			FunctionPT();
-		}
-		gettimeofday(&now, NULL);
-		if (hasToUpdate()) {
-			t_mino temp = create_mino(current);
-			// patter of push 's'
-			switch('s'){
-				case 's':
-					temp.row++;
-					if(FunctionCP(temp))
-						current.row++;
-					else {
-						int i, j;
-						for(i = 0; i < current.width ;i++){
-							for(j = 0; j < current.width ; j++){
-								if(current.shape[i][j])
-									game_field[current.row+i][current.col+j] = current.shape[i][j];
-							}
-						}
-						int n, m, sum, count=0;
-						for(n=0;n< ROW ;n++){
-							sum = 0;
-							for(m=0;m< COLUMN ;m++) {
-								sum+= game_field[n][m];
-							}
-							if(sum== COLUMN ){
-								count++;
-								int l, k;
-								for(k = n;k >=1;k--)
-									for(l=0;l< COLUMN ;l++)
-										game_field[k][l] = game_field[k-1][l];
-								for(l=0;l< COLUMN ;l++)
-									game_field[k][l]=0;
-								timer-=decrease--;
-							}
-						}
-
-						// count point
-						get_score += 100*count;
-
-						t_mino new_shape = create_mino(minos[rand()%7]);
-						new_shape.col = rand()%(COLUMN -new_shape.width+1);
-						new_shape.row = 0;
-						delete_mino(current);
-						current = new_shape;
-						if(!FunctionCP(current)){
-							now_game = FALSE;
-						}
-					}
-					break;
-				case 'd':
-					temp.col++;
-					if(FunctionCP(temp))
-						current.col++;
-					break;
-				case 'a':
-					temp.col--;
-					if(FunctionCP(temp))
-						current.col--;
-					break;
-				case 'w':
-					FunctionRS(temp);
-					if(FunctionCP(temp))
-						FunctionRS(current);
-					break;
-			}
-			delete_mino(temp);
-			FunctionPT();
-			gettimeofday(&before_now, NULL);
-		}
-	}
-	// Game Over
-	delete_mino(current);
+void	print_gameover(){
 	endwin();
-	int i, j;
-	for(i = 0; i < ROW ;i++){
-		for(j = 0; j < COLUMN ; j++){
-			printf("%c ", game_field[i][j] ? '#': '.');
+	int j, i;
+	for (j = 0; j < HEIGHT; j++){
+		for (i = 0; i < WIDTH; i++){
+			printf("%c ", g_field[j][i] ? '#': '.');
 		}
 		printf("\n");
 	}
 	printf("\nGame over!\n");
-	printf("\nScore: %d\n", get_score);
-    return 0;
+	printf("\nScore: %d\n", g_score);
 }
+
+bool	is_row_filled(const t_field_row row){
+	for (int i = 0; i < WIDTH; i++) {
+		if (!row[i]){
+			return false;
+		}
+	}
+	return true;
+}
+
+void	update_field(const t_tetrimino mino){
+	for (int j = 0; j < mino.shape.size; j++){
+		for (int i = 0; i < mino.shape.size; i++){
+			if (mino.shape.array[j][i]){
+				g_field[mino.pos.y + j][mino.pos.x + i] = mino.shape.array[j][i];
+			}
+		}
+	}
+}
+
+void	clear_field_row(int y){
+	for (int j = y; j >= 1; j--)
+		memcpy(g_field[j], g_field[j - 1], sizeof(g_field[j]));
+	memset(g_field[0], 0, sizeof(g_field[0]));
+}
+
+int	handle_lines(const t_tetrimino mino){
+	update_field(mino);
+	int	count = 0;
+	for (int y = 0; y < HEIGHT; y++){
+		if (is_row_filled(g_field[y])){
+			clear_field_row(y);
+			count++;
+			g_timer -= g_timer_decrease--;
+		}
+	}
+	return count;
+}
+
+t_point	point_add(t_point p1, t_point p2){
+	return (t_point){p1.x + p2.x, p1.y + p2.y};
+}
+
+bool	try_move(t_tetrimino mino, t_point dir){
+	mino.pos = point_add(mino.pos, dir);
+	if (!tetrimino_is_valid_place(mino))
+		return false;
+	g_current = mino;
+	return true;
+}
+
+t_mino_shape	shape_rotate(t_mino_shape shape){
+	t_mino_shape	result = shape;
+	for (int j = 0; j < shape.size; j++){
+		for (int i = 0; i < shape.size; i++){
+			result.array[j][i] = shape.array[shape.size - 1 - i][j];
+		}
+	}
+	return result;
+}
+
+bool	try_rotate(t_tetrimino mino){
+	mino.shape = shape_rotate(mino.shape);
+	if (!tetrimino_is_valid_place(mino))
+		return false;
+	g_current = mino;
+	return true;
+}
+
+bool	key_handle(int key){
+	const t_point	left = {-1, 0};
+	const t_point	down = {0, 1};
+	const t_point	right = {1, 0};
+
+	switch(key){
+		case 'w':
+		case KEY_UP:
+			try_rotate(g_current);
+			break;
+		case 'a':
+		case KEY_LEFT:
+			try_move(g_current, left);
+			break;
+		case 's':
+		case KEY_DOWN:
+			try_move(g_current, down);
+			break;
+		case 'd':
+		case KEY_RIGHT:
+			try_move(g_current, right);
+			break;
+		case ERR:
+		default:
+			return false;
+	}
+	print_board(g_current);
+	return true;
+}
+
+int main() {
+	init();
+
+	struct timeval past;
+	gettimeofday(&past, NULL);
+
+	print_board(g_current);
+
+	while(g_GameOn){
+		key_handle(getch());
+		if (hasToUpdate(past)) {
+			const t_point	down = {0, 1};
+			if (!try_move(g_current, down)){
+				g_score += 100 * handle_lines(g_current);
+
+				g_current = tetrimino_random();
+
+				if (!tetrimino_is_valid_place(g_current)){
+					g_GameOn = false;
+				}
+			}
+
+			print_board(g_current);
+			gettimeofday(&past, NULL);
+		}
+	}
+	print_gameover();
+	return 0;
+}
+
+#ifdef LEAKS
+__attribute__((destructor)) void destructor(void)
+{
+	system("leaks -q tetris");
+}
+#endif
