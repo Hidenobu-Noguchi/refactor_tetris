@@ -1,3 +1,5 @@
-tetris
-tetris_base
-
+*
+!*.c
+!*.h
+!Makefile
+!.gitignore
