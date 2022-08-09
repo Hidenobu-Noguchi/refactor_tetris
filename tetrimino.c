@@ -78,16 +78,18 @@ t_tetrimino tetrimino_random(){
 	return new_mino;
 }
 
+static bool	is_in_field(int x, int y){
+	return 0 <= x && x < WIDTH && 0 <= y && y < HEIGHT;
+}
+
 bool tetrimino_is_valid_place(t_game *game, t_tetrimino mino){
 	for (int j = 0; j < mino.shape.size; j++) {
 		for (int i = 0; i < mino.shape.size; i++){
-			if (!mino.shape.array[j][i]){
-				continue;
-			}
-			if (mino.pos.x + i < 0
-					|| WIDTH <= mino.pos.x + i
-					|| HEIGHT <= mino.pos.y + j
-					|| game->field[mino.pos.y + j][mino.pos.x + i])
+			int	x = mino.pos.x + i;
+			int	y = mino.pos.y + j;
+
+			if (mino.shape.array[j][i]
+				&& (!is_in_field(x, y) || game->field[y][x]))
 			{
 				return false;
 			}

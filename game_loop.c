@@ -22,6 +22,7 @@ void	game_init(t_game *game){
 
 static void	drop_mino(t_game *game){
 	const t_point	down = {0, 1};
+
 	if (!try_move(game, game->current, down)){
 		game->score += 100 * handle_lines(game, game->current);
 

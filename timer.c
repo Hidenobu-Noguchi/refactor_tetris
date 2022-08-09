@@ -2,7 +2,7 @@
 #include <sys/time.h>
 #include "game.h"
 
-static suseconds_t	difftime_usec(t_timeval t1, t_timeval t0){
+static long long	difftime_usec(t_timeval t1, t_timeval t0){
 	return (t1.tv_sec - t0.tv_sec) * 1000000L + (t1.tv_usec - t0.tv_usec);
 }
 

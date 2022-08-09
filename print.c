@@ -13,7 +13,7 @@ void	print_board(t_game *game, t_tetrimino mino){
 	printw("%*c42 Tetris\n", WIDTH-10, ' ');
 	for (int j = 0; j < HEIGHT; j++){
 		for (int i = 0; i < WIDTH; i++){
-			printw("%c ", (game->field[j][i] || buffer[j][i])? '#': '.');
+			printw("%c ", (game->field[j][i] || buffer[j][i])? '#' : '.');
 		}
 		printw("\n");
 	}
@@ -22,10 +22,9 @@ void	print_board(t_game *game, t_tetrimino mino){
 
 void	print_gameover(t_game *game){
 	endwin();
-	int j, i;
-	for (j = 0; j < HEIGHT; j++){
-		for (i = 0; i < WIDTH; i++){
-			printf("%c ", game->field[j][i] ? '#': '.');
+	for (int j = 0; j < HEIGHT; j++){
+		for (int i = 0; i < WIDTH; i++){
+			printf("%c ", game->field[j][i] ? '#' : '.');
 		}
 		printf("\n");
 	}

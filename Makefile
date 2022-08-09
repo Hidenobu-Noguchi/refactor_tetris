@@ -1,6 +1,6 @@
 NAME = tetris
 
-CFLAGS = -Wall -Wextra -MMD -MP 
+CFLAGS = -Wall -Wextra -Werror -MMD -MP 
 LIBS = -lncurses
 
 SRCS = tetris.c field.c game_loop.c print.c tetrimino.c timer.c
@@ -25,7 +25,7 @@ re: fclean all
 
 .PHONY: debug leaks
 
-debug: CFLAGS += -g -fsanitize=address -fsanitize=undefined -fsanitize=integer
+debug: CFLAGS = -Wall -Wextra -g -fsanitize=address -fsanitize=undefined -fsanitize=integer
 debug: re
 d: debug
 
