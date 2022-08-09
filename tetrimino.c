@@ -125,17 +125,3 @@ bool	try_rotate(t_game *game, t_tetrimino mino){
 	game->current = mino;
 	return true;
 }
-
-void	drop_mino(t_game *game){
-	const t_point	down = {0, 1};
-	if (!try_move(game, game->current, down)){
-		game->score += 100 * handle_lines(game, game->current);
-
-		game->current = tetrimino_random();
-		if (!tetrimino_is_valid_place(game, game->current)){
-			game->on = false;
-		}
-	}
-	print_board(game, game->current);
-	game->last_updated = get_current_time();
-}

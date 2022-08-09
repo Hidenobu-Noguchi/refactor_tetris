@@ -1,10 +1,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ncurses.h>
+#include "tetris.h"
 #include "game.h"
 
 void	game_init(t_game *game){
-	srand(time(NULL));
+	srand(get_current_time().tv_usec);
 	initscr();
 	timeout(1);
 
@@ -17,6 +18,20 @@ void	game_init(t_game *game){
 		.timer_decrease = 1000,
 		.last_updated = get_current_time(),
 	};
+}
+
+static void	drop_mino(t_game *game){
+	const t_point	down = {0, 1};
+	if (!try_move(game, game->current, down)){
+		game->score += 100 * handle_lines(game, game->current);
+
+		game->current = tetrimino_random();
+		if (!tetrimino_is_valid_place(game, game->current)){
+			game->on = false;
+		}
+	}
+	print_board(game, game->current);
+	game->last_updated = get_current_time();
 }
 
 static bool	key_handle(t_game *game, int key){

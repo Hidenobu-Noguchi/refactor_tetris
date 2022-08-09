@@ -1,3 +1,4 @@
+#include "tetris.h"
 #include "game.h"
 
 int main() {
@@ -10,6 +11,8 @@ int main() {
 }
 
 #ifdef LEAKS
+#include <stdlib.h>
+
 __attribute__((destructor)) void destructor(void)
 {
 	system("leaks -q tetris");
