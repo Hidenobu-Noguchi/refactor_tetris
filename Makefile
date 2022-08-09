@@ -1,18 +1,18 @@
 NAME = tetris
 
-CFLAGS = -Wall -Wextra -MMD -MP -lncurses
+CFLAGS = -Wall -Wextra -MMD -MP 
+LIBS = -lncurses
 
-SRCS = tetris.c
+SRCS = tetris.c field.c game_loop.c print.c tetrimino.c timer.c
 OBJS = $(SRCS:.c=.o)
 DEPS = $(OBJS:.o=.d)
 
-$(NAME): $(SRCS)
-	$(CC) $(CFLAGS) $^ -o $@
+$(NAME): $(OBJS)
+	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
 .PHONY: all clean fclean re
 
 all: $(NAME)
-a: all
 
 clean:
 	$(RM) $(OBJS) $(DEPS)
