@@ -25,7 +25,7 @@ re: fclean all
 
 .PHONY: debug leaks
 
-debug: CFLAGS += -g -fsanitize=address
+debug: CFLAGS += -g -fsanitize=address -fsanitize=undefined -fsanitize=integer
 debug: re
 d: debug
 

@@ -32,12 +32,16 @@ typedef struct {
 	t_point			pos;
 } t_tetrimino;
 
-t_tetrimino g_current = {};
-t_field	g_field = {};
-int		g_score = 0;
-bool	g_GameOn = true;
-suseconds_t g_timer = 400000;
-suseconds_t g_timer_decrease = 1000;
+typedef struct {
+	t_tetrimino current;
+	t_field		field;
+	int			score;
+	bool		on;
+	suseconds_t timer;
+	suseconds_t timer_decrease;
+	suseconds_t last_updated;
+} t_game;
+
 
 const t_mino_shape	k_shapes[N_SHAPE]= {
 	{
@@ -117,16 +121,16 @@ t_tetrimino tetrimino_random(){
 	return new_mino;
 }
 
-bool tetrimino_is_valid_place(t_tetrimino mino){
+bool tetrimino_is_valid_place(t_game *game, t_tetrimino mino){
 	for (int j = 0; j < mino.shape.size; j++) {
 		for (int i = 0; i < mino.shape.size; i++){
 			if (!mino.shape.array[j][i]){
 				continue;
 			}
 			if (mino.pos.x + i < 0
-				|| WIDTH <= mino.pos.x + i
-				|| HEIGHT <= mino.pos.y + j
-				|| g_field[mino.pos.y + j][mino.pos.x + i])
+					|| WIDTH <= mino.pos.x + i
+					|| HEIGHT <= mino.pos.y + j
+					|| game->field[mino.pos.y + j][mino.pos.x + i])
 			{
 				return false;
 			}
@@ -135,7 +139,7 @@ bool tetrimino_is_valid_place(t_tetrimino mino){
 	return true;
 }
 
-void print_board(t_tetrimino mino){
+void print_board(t_game *game, t_tetrimino mino){
 	clear();
 	t_field	buffer = {};
 	for (int j = 0; j < mino.shape.size; j++){
@@ -147,39 +151,35 @@ void print_board(t_tetrimino mino){
 	printw("%*c42 Tetris\n", WIDTH-10, ' ');
 	for (int j = 0; j < HEIGHT; j++){
 		for (int i = 0; i < WIDTH; i++){
-			printw("%c ", (g_field[j][i] || buffer[j][i])? '#': '.');
+			printw("%c ", (game->field[j][i] || buffer[j][i])? '#': '.');
 		}
 		printw("\n");
 	}
-	printw("\nScore: %d\n", g_score);
+	printw("\nScore: %d\n", game->score);
 }
 
-bool	hasToUpdate(struct timeval past){
+suseconds_t	get_current_time(){
 	struct timeval	now;
-
 	gettimeofday(&now, NULL);
-	return ((suseconds_t)(now.tv_sec * 1000000 + now.tv_usec) - (suseconds_t)(past.tv_sec * 1000000 + past.tv_usec)) > g_timer;
+	return (now.tv_sec * 1000000 + now.tv_usec);
 }
 
-void	init(){
-	srand(time(NULL));
-	initscr();
-	timeout(1);
-	g_score = 0;
-	g_current = tetrimino_random();
+bool	is_time_to_update(t_game *game){
+	return (get_current_time() - game->last_updated) > game->timer;
 }
 
-void	print_gameover(){
+
+void	print_gameover(t_game *game){
 	endwin();
 	int j, i;
 	for (j = 0; j < HEIGHT; j++){
 		for (i = 0; i < WIDTH; i++){
-			printf("%c ", g_field[j][i] ? '#': '.');
+			printf("%c ", game->field[j][i] ? '#': '.');
 		}
 		printf("\n");
 	}
 	printf("\nGame over!\n");
-	printf("\nScore: %d\n", g_score);
+	printf("\nScore: %d\n", game->score);
 }
 
 bool	is_row_filled(const t_field_row row){
@@ -191,44 +191,44 @@ bool	is_row_filled(const t_field_row row){
 	return true;
 }
 
-void	update_field(const t_tetrimino mino){
+void	put_to_field(t_game *game, const t_tetrimino mino){
 	for (int j = 0; j < mino.shape.size; j++){
 		for (int i = 0; i < mino.shape.size; i++){
 			if (mino.shape.array[j][i]){
-				g_field[mino.pos.y + j][mino.pos.x + i] = mino.shape.array[j][i];
+				game->field[mino.pos.y + j][mino.pos.x + i] = mino.shape.array[j][i];
 			}
 		}
 	}
 }
 
-void	clear_field_row(int y){
+void	clear_field_row(t_game *game, int y){
 	for (int j = y; j >= 1; j--)
-		memcpy(g_field[j], g_field[j - 1], sizeof(g_field[j]));
-	memset(g_field[0], 0, sizeof(g_field[0]));
+		memcpy(game->field[j], game->field[j - 1], sizeof(game->field[j]));
+	memset(game->field[0], 0, sizeof(game->field[0]));
 }
 
-int	handle_lines(const t_tetrimino mino){
-	update_field(mino);
+int	handle_lines(t_game *game, const t_tetrimino mino){
+	put_to_field(game, mino);
 	int	count = 0;
 	for (int y = 0; y < HEIGHT; y++){
-		if (is_row_filled(g_field[y])){
-			clear_field_row(y);
+		if (is_row_filled(game->field[y])){
+			clear_field_row(game, y);
 			count++;
-			g_timer -= g_timer_decrease--;
+			game->timer -= game->timer_decrease--;
 		}
 	}
 	return count;
 }
 
-t_point	point_add(t_point p1, t_point p2){
+t_point	point_add(const t_point p1, const t_point p2){
 	return (t_point){p1.x + p2.x, p1.y + p2.y};
 }
 
-bool	try_move(t_tetrimino mino, t_point dir){
+bool	try_move(t_game *game, t_tetrimino mino, t_point dir){
 	mino.pos = point_add(mino.pos, dir);
-	if (!tetrimino_is_valid_place(mino))
+	if (!tetrimino_is_valid_place(game, mino))
 		return false;
-	g_current = mino;
+	game->current = mino;
 	return true;
 }
 
@@ -242,71 +242,88 @@ t_mino_shape	shape_rotate(t_mino_shape shape){
 	return result;
 }
 
-bool	try_rotate(t_tetrimino mino){
+bool	try_rotate(t_game *game, t_tetrimino mino){
 	mino.shape = shape_rotate(mino.shape);
-	if (!tetrimino_is_valid_place(mino))
+	if (!tetrimino_is_valid_place(game, mino))
 		return false;
-	g_current = mino;
+	game->current = mino;
 	return true;
 }
 
-bool	key_handle(int key){
+void	drop_mino(t_game *game){
+	const t_point	down = {0, 1};
+	if (!try_move(game, game->current, down)){
+		game->score += 100 * handle_lines(game, game->current);
+
+		game->current = tetrimino_random();
+		if (!tetrimino_is_valid_place(game, game->current)){
+			game->on = false;
+		}
+	}
+
+	print_board(game, game->current);
+	game->last_updated = get_current_time();
+}
+
+bool	key_handle(t_game *game, int key){
 	const t_point	left = {-1, 0};
 	const t_point	down = {0, 1};
 	const t_point	right = {1, 0};
 
 	switch(key){
 		case 'w':
-		case KEY_UP:
-			try_rotate(g_current);
+			try_rotate(game, game->current);
 			break;
 		case 'a':
-		case KEY_LEFT:
-			try_move(g_current, left);
+			try_move(game, game->current, left);
 			break;
 		case 's':
-		case KEY_DOWN:
-			try_move(g_current, down);
+			drop_mino(game);
 			break;
 		case 'd':
-		case KEY_RIGHT:
-			try_move(g_current, right);
+			try_move(game, game->current, right);
 			break;
 		case ERR:
 		default:
 			return false;
 	}
-	print_board(g_current);
+	print_board(game, game->current);
 	return true;
 }
 
-int main() {
-	init();
+void	init(t_game *game){
+	srand(time(NULL));
+	initscr();
+	timeout(1);
 
-	struct timeval past;
-	gettimeofday(&past, NULL);
+	*game = (t_game){
+		.current = {},
+		.field = {},
+		.score = 0,
+		.on = true,
+		.timer = 400000,
+		.timer_decrease = 1000,
+		.last_updated = get_current_time(),
+	};
+}
 
-	print_board(g_current);
-
-	while(g_GameOn){
-		key_handle(getch());
-		if (hasToUpdate(past)) {
-			const t_point	down = {0, 1};
-			if (!try_move(g_current, down)){
-				g_score += 100 * handle_lines(g_current);
-
-				g_current = tetrimino_random();
-
-				if (!tetrimino_is_valid_place(g_current)){
-					g_GameOn = false;
-				}
-			}
-
-			print_board(g_current);
-			gettimeofday(&past, NULL);
+void	game_loop(t_game *game) {
+	game->current = tetrimino_random();
+	print_board(game, game->current);
+	while(game->on){
+		key_handle(game, getch());
+		if (is_time_to_update(game)) {
+			drop_mino(game);
 		}
 	}
-	print_gameover();
+}
+
+int main() {
+	t_game	game;
+
+	init(&game);
+	game_loop(&game);
+	print_gameover(&game);
 	return 0;
 }
 
