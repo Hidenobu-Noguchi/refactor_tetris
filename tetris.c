@@ -7,8 +7,10 @@
 #define ROW 20 // height of game table ROW
 #define COLUMN 15 // width of game table CLUMN
 #define	MINO_TYPES 7
+#define	SQUARE_SIZE 4
 #define TRUE 1
 #define FALSE 0
+
 
 char		game_field[ROW][COLUMN] = {0};
 int			get_score = 0;
@@ -16,6 +18,15 @@ char		now_game = TRUE;
 suseconds_t	timer = 400000; // suseconds_t is signed int. express the time. micro seconds
 int			decrease = 1000;
 
+typedef struct {
+	char	shape[SQUARE_SIZE][SQUARE_SIZE];
+	int		mino_size;
+} t_mino;
+
+const t_mino	mino_set[MINO_TYPES] = {
+
+}
+/*
 typedef struct {
     char **shape;
     int width, row, col;
@@ -54,6 +65,8 @@ const t_mino minos[MINO_TYPES]= {
 	// . . . .
 	{(char *[]){(char []){0,0,0,0}, (char []){1,1,1,1}, (char []){0,0,0,0}, (char []){0,0,0,0}}, 4}
 };
+*/
+
 
 t_mino create_mino(t_mino mino){
 	t_mino new_mino = mino;
@@ -76,7 +89,7 @@ void delete_mino(t_mino mino){
     free(mino.shape);
 }
 
-// Check Position (.)
+// Check Position (.) Check Point
 int FunctionCP(t_mino mino){
 	char **shape = mino.shape;
 	int i, j;
@@ -111,22 +124,27 @@ void FunctionRS(t_mino shape){
 void FunctionPT(){
 	char Buffer[ROW][COLUMN] = {0};
 	int i, j;
+	// add mino
 	for(i = 0; i < current.width ;i++){
 		for(j = 0; j < current.width ; j++){
 			if(current.shape[i][j])
 				Buffer[current.row+i][current.col+j] = current.shape[i][j];
 		}
 	}
+	// clear the terminal screen
 	clear();
+	// print title
 	for(i=0; i< COLUMN -9; i++)
 		printw(" ");
 	printw("42 Tetris\n");
+	// print table
 	for(i = 0; i < ROW ;i++){
 		for(j = 0; j < COLUMN ; j++){
 			printw("%c ", (game_field[i][j] + Buffer[i][j])? '#': '.');
 		}
 		printw("\n");
 	}
+	// print score
 	printw("\nScore: %d\n", get_score);
 }
 
