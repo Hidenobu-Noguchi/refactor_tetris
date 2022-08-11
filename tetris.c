@@ -18,94 +18,6 @@ char		now_game = TRUE;
 suseconds_t	timer = 400000; // suseconds_t is signed int. express the time. micro seconds
 int			decrease = 1000;
 
-typedef unsigned char	t_mino_array[SQUARE_SIZE][SQUARE_SIZE];
-
-typedef struct s_mino_shape	t_mino_shape;
-typedef struct s_point		t_point;
-typedef struct s_tetrimino	t_tetrimino;
-
-struct s_mino_shape {
-	t_mino_array	array;
-	int				size;
-};
-
-struct s_point {
-	int	x;
-	int	y;
-};
-
-struct s_tetrimino {
-	t_mino_shape	shape;
-	t_point			pos;
-};
-
-const t_mino_shape	mino_set[MINO_TYPES] = {
-	{
-		.array = {
-			{0, 1, 1, 0},
-			{1, 1, 0, 0},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		},
-		.size = 3,
-	},
-	{
-		.array = {
-			{1, 1, 0, 0},
-			{0, 1, 1, 0},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		},
-		.size = 3,
-	},
-	{
-		.array = {
-			{0, 1, 0, 0},
-			{1, 1, 1, 0},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		},
-		.size = 3,
-	},
-	{
-		.array = {
-			{0, 0, 1, 0},
-			{1, 1, 1, 0},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		},
-		.size = 3,
-	},
-	{
-		.array = {
-			{1, 0, 0, 0},
-			{1, 1, 1, 0},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		},
-		.size = 3,
-	},
-	{
-		.array = {
-			{1, 1, 0, 0},
-			{1, 1, 0, 0},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		},
-		.size = 2,
-	},
-	{
-		.array = {
-			{0, 0, 0, 0},
-			{1, 1, 1, 1},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		},
-		.size = 4,
-	},
-};
-
-/*
 typedef struct {
     char **shape;
     int width, row, col;
@@ -114,7 +26,7 @@ typedef struct {
 t_mino current;
 
 // blocks
-const t_mino minos[MINO_TYPES]= {
+const t_mino mino_set[MINO_TYPES]= {
 	// . # # | # . .
 	// # # . | # # .
 	// . . . | . # .
@@ -144,9 +56,7 @@ const t_mino minos[MINO_TYPES]= {
 	// . . . .
 	{(char *[]){(char []){0,0,0,0}, (char []){1,1,1,1}, (char []){0,0,0,0}, (char []){0,0,0,0}}, 4}
 };
-*/
 
-/*
 t_mino create_mino(t_mino mino){
 	t_mino new_mino = mino;
 	new_mino.shape = (char**)malloc(new_mino.width*sizeof(char*));
@@ -167,7 +77,6 @@ void delete_mino(t_mino mino){
     }
     free(mino.shape);
 }
-*/
 
 // Check Position (.) Check Point
 int FunctionCP(t_mino mino){
@@ -187,7 +96,7 @@ int FunctionCP(t_mino mino){
 	return TRUE;
 }
 
-// Remove Sharp (#) or shape
+// Rotate Shape
 void FunctionRS(t_mino shape){
 	t_mino temp = create_mino(shape);
 	int i, j, k, width;
@@ -201,7 +110,6 @@ void FunctionRS(t_mino shape){
 }
 
 // print table
-/*
 void FunctionPT(){
 	char Buffer[ROW][COLUMN] = {0};
 	int i, j;
@@ -228,7 +136,6 @@ void FunctionPT(){
 	// print score
 	printw("\nScore: %d\n", get_score);
 }
-*/
 
 struct timeval before_now, now;
 /*
@@ -398,7 +305,7 @@ int main() {
 						// count point
 						get_score += 100*count;
 
-						t_mino new_shape = create_mino(minos[rand()%7]);
+						t_mino new_shape = create_mino(mino_set[rand()%7]);
 						new_shape.col = rand()%(COLUMN -new_shape.width+1);
 						new_shape.row = 0;
 						delete_mino(current);

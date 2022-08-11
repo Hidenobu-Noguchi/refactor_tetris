@@ -11,20 +11,19 @@
 #define TRUE 1
 #define FALSE 0
 
-
-char		game_field[ROW][COLUMN] = {0};
-int			get_score = 0;
-char		is_running = TRUE;
-suseconds_t	timer = 400000; // suseconds_t is signed int. express the time. micro seconds
-int			decrease = 1000;
-struct timeval before_now;
-struct timeval now;
+char			game_field[ROW][COLUMN] = {0};
+int				get_score = 0;
+char			is_running = TRUE;
+suseconds_t		interval = 400000;
+int				up_speed = 1000;
+struct timeval	starting_time;
+struct timeval 	present_time;
 
 typedef unsigned char	t_mino_array[SQUARE_SIZE][SQUARE_SIZE];
 
 typedef struct s_mino_shape	t_mino_shape;
-typedef struct s_position		t_position;
-typedef struct s_mino	t_mino;
+typedef struct s_position	t_position;
+typedef struct s_mino		t_mino;
 
 struct s_mino_shape {
 	t_mino_array	array;
@@ -38,7 +37,7 @@ struct s_position {
 
 struct s_mino {
 	t_mino_shape	shape;
-	t_position			pos;
+	t_position		pos;
 };
 
 t_mino	current_mino;
@@ -124,7 +123,7 @@ static void	add_if_exist_mino(char (*mino_pos)[15], int row, int col)
 		mino_pos[current_mino.pos.y + row][current_mino.pos.x + col] = current_mino.shape.array[row][col];
 }
 
-static void	add_mino_pos(char (*mino_pos)[15])
+static void	add_current_mino_pos(char (*mino_pos)[15])
 {
 	for(int row = 0; row < current_mino.shape.size ;row++) {
 		for(int col = 0; col < current_mino.shape.size ; col++) {
@@ -140,7 +139,7 @@ static void	print_title()
 	printw("42 Tetris\n");
 }
 
-static void	fprint_table(char (*mino_pos)[15])
+static void	print_game_table(char (*mino_pos)[15])
 {
 	for(int i = 0; i < ROW ; i++){
 		for(int j = 0; j < COLUMN ; j++){
@@ -158,38 +157,25 @@ static void	print_score()
 void	print_table()
 {
 	char current_mino_pos[ROW][COLUMN] = {0};
-	add_mino_pos(current_mino_pos);
+	add_current_mino_pos(current_mino_pos);
 	clear();
 	print_title();
-	fprint_table(current_mino_pos);
+	print_game_table(current_mino_pos);
 	print_score();
 }
 
-void set_timeout(int time) {
-	time = 1;
-	timeout(1);
-}
+int check_mino_position(t_mino mino) {
+	for(int i = 0; i < mino.shape.size; i++) {
+		for(int j = 0; j < mino.shape.size; j++) {
+			int	x = mino.pos.x + j;
+			int	y = mino.pos.y + i;
 
-void	initialize_game()
-{
-    get_score = 0;
-    initscr();
-	gettimeofday(&before_now, NULL);
-	set_timeout(1);
-	srand((unsigned int)before_now.tv_sec);
-}
-
-int check_mino_position(t_mino mino){
-	// t_mino_shape	shape = mino->shape;
-	int j;
-	for(int i = 0; i < mino.shape.size;i++) {
-		for(j = 0; j < mino.shape.size ;j++){
-			if((mino.pos.x + j < 0 || mino.pos.x + j >= COLUMN || mino.pos.y + i >= ROW)){
-				if(mino.shape.array[i][j])
+			if (y < 0 || ROW <= y || x < 0 || COLUMN <= x)
+			{
+				if (mino.shape.array[i][j])
 					return FALSE;
-				
 			}
-			else if(game_field[mino.pos.y + i][mino.pos.x + j] && mino.shape.array[i][j])
+			else if (game_field[y][x] && mino.shape.array[i][j])
 				return FALSE;
 		}
 	}
@@ -209,11 +195,10 @@ void	rotate_mino(t_mino *mino) {
 }
 
 // void	execute_command(void)
-void	execute_command(t_mino new_mino, int c)
+void	execute_command(int c)
 {
-	// int				c;
-	// t_mino			new_mino;
-	t_mino temp_mino = create_mino();
+	t_mino	new_mino;
+	t_mino	temp_mino = current_mino;
 
 	switch(c){
 		case 's':
@@ -227,7 +212,7 @@ void	execute_command(t_mino new_mino, int c)
 							game_field[current_mino.pos.y + i][current_mino.pos.x + j] = current_mino.shape.array[i][j];
 						}
 					}
-					int sum, count=0;
+					int sum, count = 0;
 					for(int n = 0; n < ROW; n++) {
 						sum = 0;
 						for(int m = 0; m < COLUMN; m++) {
@@ -240,8 +225,9 @@ void	execute_command(t_mino new_mino, int c)
 								for(int l = 0; l < COLUMN; l++)
 									game_field[k][l] = game_field[k - 1][l];
 							for(int l = 0; l < COLUMN ; l++)
-								game_field[k][l]=0;
-							timer -= decrease--;
+								game_field[k][l] = 0;
+							interval -= up_speed;
+							up_speed--;
 						}
 					}
 					get_score += 100 * count;
@@ -275,35 +261,47 @@ void	execute_command(t_mino new_mino, int c)
 	print_table();
 }
 
-int hasToUpdate(){
-	return ((suseconds_t)(now.tv_sec*1000000 + now.tv_usec) -((suseconds_t)before_now.tv_sec*1000000 + before_now.tv_usec)) > timer;
+int is_time_to_update(){
+	return ((suseconds_t)((present_time.tv_sec * 1000000) + present_time.tv_usec) - (suseconds_t)((starting_time.tv_sec * 1000000) + starting_time.tv_usec)) > timer;
 }
 
-
-
-#include <unistd.h>
-int main() {
+void	running_game()
+{
 	int		c;
-	t_mino	new_mino = create_mino();
-
-	initialize_game();
-
-	current_mino = new_mino;
-	if(!check_mino_position(current_mino)) {
-		is_running = FALSE;
-	}
-
-	print_table();
 
 	while(is_running) {
 		if ((c = getch()) != ERR)
-			execute_command(new_mino, c);
-		gettimeofday(&now, NULL);
-		if (hasToUpdate()) {
-			execute_command(new_mino, c);
-			gettimeofday(&before_now, NULL);
+			execute_command(c);
+		gettimeofday(&present_time, NULL);
+		if (is_time_to_update())
+		{
+			execute_command('s');
+			gettimeofday(&starting_time, NULL);
 		}
 	}
+}
+
+void	initialize_game() {
+	t_mino	new_mino = create_mino();
+   
+    initscr();
+	gettimeofday(&starting_time, NULL);
+	timeout(1);
+	srand((unsigned int)starting_time.tv_usec);
+
+	get_score = 0;
+	current_mino = new_mino;
+
+	if(!check_mino_position(current_mino))
+		is_running = FALSE;
+	print_table();
+}
+
+int main() {
+
+	initialize_game();
+	running_game();
+
 	// Game Over
 	endwin();
 	for(int i = 0; i < ROW ;i++) {
