@@ -17,31 +17,29 @@ static void	fill_buffer(t_field buffer, const t_tetrimino mino) {
 
 void	print_board(const t_game *game, const t_tetrimino mino) {
 	clear();
-
 	t_field	buffer = {};
 	fill_buffer(buffer, mino);
 
-	printw("%*c42 Tetris\n", WIDTH / 2, ' ');
-	for (int i = 0; i < WIDTH; i++) {
-		printw("%c ", '_');
-	}
-	printw("\n");
+	printw("%*c42 Tetris\n\n", WIDTH - 4, ' ');
 	for (int j = HEIGHT - 1; j >= 0; j--) {
+		printw(" |");
 		for (int i = 0; i < WIDTH; i++) {
-			printw("%c ", (game->field[j][i] || buffer[j][i]) ? CHAR_FULL : CHAR_EMPTY);
+			printw(" %c", (game->field[j][i] || buffer[j][i]) ? CHAR_FULL : CHAR_EMPTY);
 		}
-		printw("\n");
+		printw(" |\n");
 	}
-	printw("\nScore: %d\nInterval: %d\n", game->score, game->interval);
+	printw("\n Score: %d\n Interval: %d\n", game->score, game->interval);
 }
 
 void	print_gameover(const t_game *game) {
+	printf("%*c42 Tetris\n\n", WIDTH - 4, ' ');
 	for (int j = HEIGHT - 1; j >= 0; j--) {
+		printf(" |");
 		for (int i = 0; i < WIDTH; i++) {
-			printf("%c ", game->field[j][i] ? CHAR_FULL : CHAR_EMPTY);
+			printf(" %c", game->field[j][i] ? CHAR_FULL : CHAR_EMPTY);
 		}
-		printf("\n");
+		printf(" |\n");
 	}
-	printf("\nGame over!\n");
-	printf("\nScore: %d\n", game->score);
+	printf("\n Game over!\n");
+	printf("\n Score: %d\n", game->score);
 }
