@@ -32,7 +32,7 @@ void	print_board(const t_game *game, const t_tetrimino mino) {
 		}
 		printw("\n");
 	}
-	printw("\nScore: %d\n", game->score);
+	printw("\nScore: %d\nInterval: %d\n", game->score, game->interval);
 }
 
 void	print_gameover(const t_game *game) {

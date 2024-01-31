@@ -1,4 +1,3 @@
-#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 #include "game.h"
@@ -37,8 +36,6 @@ int	drop_lines(t_game *game, const t_tetrimino mino) {
 		if (is_row_filled(game->field[y])) {
 			clear_field_row(game, y);
 			count++;
-			int level = game->score / 100;
-			game->interval = pow(0.8 - level*0.007, level) * 1000000;
 		}
 	}
 	return count;

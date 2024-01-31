@@ -25,27 +25,27 @@ static const t_mino_shape	k_shapes[N_SHAPE]= {
 	},
 	{ // T
 		.array = {
+			{0,0,0,0},
 			{1,1,1,0},
 			{0,1,0,0},
-			{0,0,0,0},
 			{0,0,0,0},
 		},
 		.size = 3,
 	},
 	{ // L
 		.array = {
+			{0,0,0,0},
 			{1,1,1,0},
 			{0,0,1,0},
-			{0,0,0,0},
 			{0,0,0,0},
 		},
 		.size = 3,
 	},
 	{ // J
 		.array = {
+			{0,0,0,0},
 			{1,1,1,0},
 			{1,0,0,0},
-			{0,0,0,0},
 			{0,0,0,0},
 		},
 		.size = 3,
@@ -75,7 +75,7 @@ t_tetrimino new_tetrimino() {
 
 	mino.shape = k_shapes[rand() % N_SHAPE];
 	mino.pos.x = (WIDTH - mino.shape.size) / 2;
-	mino.pos.y = HEIGHT;
+	mino.pos.y = HEIGHT - 1;
 	return mino;
 }
 

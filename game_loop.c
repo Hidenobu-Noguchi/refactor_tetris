@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ncurses.h>
@@ -20,6 +21,10 @@ void	game_init(t_game *game) {
 	};
 }
 
+static suseconds_t calc_interval(int level) {
+	return pow(0.8 - level*0.007, level) * 1000000;
+}
+
 static void	drop_mino(t_game *game) {
 	const t_point	down = {0, -1};
 	const int		k_score_per_line = 100;
@@ -27,6 +32,7 @@ static void	drop_mino(t_game *game) {
 	if (!try_move(game, game->current, down)) {
 		int n_lines = drop_lines(game, game->current);
 		game->score += k_score_per_line * n_lines;
+		game->interval = calc_interval(game->score / k_score_per_line);
 		game->current = new_tetrimino();
 		if (!is_tetrimino_valid_place(game, game->current)) {
 			game->is_on = false;
