@@ -32,6 +32,7 @@ void	print_board(const t_game *game, const t_tetrimino mino) {
 }
 
 void	print_gameover(const t_game *game) {
+	printf("\033[2J");
 	printf("%*c42 Tetris\n\n", WIDTH - 4, ' ');
 	for (int j = HEIGHT - 1; j >= 0; j--) {
 		printf(" |");
