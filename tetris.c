@@ -6,7 +6,7 @@ int main() {
 
 	game_init(&game);
 	game_loop(&game);
-	print_gameover(&game);
+	game_end(&game);
 	return 0;
 }
 
