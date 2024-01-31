@@ -12,10 +12,11 @@ typedef struct timeval		t_timeval;
 // game_loop.c
 void	game_init(t_game *game);
 void	game_loop(t_game *game);
+void	game_end(const t_game *game);
 
 // print.c
 void	print_board(const t_game *game, const t_tetrimino mino);
-void	game_end(const t_game *game);
+void	print_gameover(const t_game *game);
 
 // field.c
 int		drop_lines(t_game *game, const t_tetrimino mino);
@@ -24,6 +25,7 @@ int		drop_lines(t_game *game, const t_tetrimino mino);
 t_tetrimino new_tetrimino();
 bool	try_move(t_game *game, t_tetrimino mino, const t_point dir);
 bool	try_rotate(t_game *game, t_tetrimino mino);
+bool	is_in_field(int x, int y);
 bool	is_tetrimino_valid_place(const t_game *game, const t_tetrimino mino);
 
 // timer.c

@@ -6,6 +6,7 @@
 
 void	game_init(t_game *game) {
 	srand(get_current_time().tv_usec);
+
 	initscr();
 	timeout(1); // blocking input at least 1 ms
 
@@ -15,16 +16,17 @@ void	game_init(t_game *game) {
 		.score = 0,
 		.is_on = true,
 		.interval = DEFAULT_INTERVAL,
-		.time_decrease = DEFAULT_DECREASE,
 		.last_updated = get_current_time(),
 	};
 }
 
 static void	drop_mino(t_game *game) {
-	const t_point	down = {0, 1};
+	const t_point	down = {0, -1};
+	const int		k_score_per_line = 100;
 
 	if (!try_move(game, game->current, down)) {
-		game->score += 100 * drop_lines(game, game->current);
+		int n_lines = drop_lines(game, game->current);
+		game->score += k_score_per_line * n_lines;
 		game->current = new_tetrimino();
 		if (!is_tetrimino_valid_place(game, game->current)) {
 			game->is_on = false;
@@ -67,4 +69,9 @@ void	game_loop(t_game *game) {
 			drop_mino(game);
 		}
 	}
+}
+
+void	game_end(const t_game *game) {
+	endwin();
+	print_gameover(game);
 }

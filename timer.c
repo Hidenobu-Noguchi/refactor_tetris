@@ -12,6 +12,6 @@ t_timeval	get_current_time() {
 	return now;
 }
 
-bool	is_time_to_update(t_game *game) {
+bool	is_time_to_update(const t_game *game) {
 	return (difftime_usec(get_current_time(), game->last_updated) > game->interval);
 }

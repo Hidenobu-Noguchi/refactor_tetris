@@ -5,7 +5,7 @@
 #include "tetris.h"
 
 static const t_mino_shape	k_shapes[N_SHAPE]= {
-	{ // S
+	{ // Z
 		.array = {
 			{0,1,1,0},
 			{1,1,0,0},
@@ -14,7 +14,7 @@ static const t_mino_shape	k_shapes[N_SHAPE]= {
 		},
 		.size = 3,
 	},
-	{ // Z
+	{ // S
 		.array = {
 			{1,1,0,0},
 			{0,1,1,0},
@@ -25,8 +25,8 @@ static const t_mino_shape	k_shapes[N_SHAPE]= {
 	},
 	{ // T
 		.array = {
-			{0,1,0,0},
 			{1,1,1,0},
+			{0,1,0,0},
 			{0,0,0,0},
 			{0,0,0,0},
 		},
@@ -34,8 +34,8 @@ static const t_mino_shape	k_shapes[N_SHAPE]= {
 	},
 	{ // L
 		.array = {
-			{0,0,1,0},
 			{1,1,1,0},
+			{0,0,1,0},
 			{0,0,0,0},
 			{0,0,0,0},
 		},
@@ -43,8 +43,8 @@ static const t_mino_shape	k_shapes[N_SHAPE]= {
 	},
 	{ // J
 		.array = {
-			{1,0,0,0},
 			{1,1,1,0},
+			{1,0,0,0},
 			{0,0,0,0},
 			{0,0,0,0},
 		},
@@ -74,13 +74,13 @@ t_tetrimino new_tetrimino() {
 	t_tetrimino mino;
 
 	mino.shape = k_shapes[rand() % N_SHAPE];
-	mino.pos.x = rand() % (WIDTH - mino.shape.size + 1);
-	mino.pos.y = 0;
+	mino.pos.x = (WIDTH - mino.shape.size) / 2;
+	mino.pos.y = HEIGHT;
 	return mino;
 }
 
-static bool	is_in_field(int x, int y) {
-	return (0 <= x && x < WIDTH && 0 <= y && y < HEIGHT);
+bool	is_in_field(int x, int y) {
+	return (0 <= x && x < WIDTH && 0 <= y && y < HEIGHT + BUFZONE);
 }
 
 bool is_tetrimino_valid_place(const t_game *game, const t_tetrimino mino) {
@@ -108,18 +108,24 @@ bool	try_move(t_game *game, t_tetrimino mino, const t_point dir) {
 	return true;
 }
 
-static t_mino_shape	rotate_shape(t_mino_shape shape) {
+static t_mino_shape	rotate_shape(const t_mino_shape shape, int dir) {
 	t_mino_shape	result = shape;
+
 	for (int j = 0; j < shape.size; j++) {
 		for (int i = 0; i < shape.size; i++) {
-			result.array[j][i] = shape.array[shape.size - 1 - i][j];
+			if (dir > 0)
+				result.array[j][i] = shape.array[i][shape.size - 1 - j];
+			else if (dir < 0)
+				result.array[j][i] = shape.array[shape.size - 1 - i][j];
 		}
 	}
 	return result;
 }
 
 bool	try_rotate(t_game *game, t_tetrimino mino) {
-	mino.shape = rotate_shape(mino.shape);
+	const int clockwise = 1;
+
+	mino.shape = rotate_shape(mino.shape, clockwise);
 	if (!is_tetrimino_valid_place(game, mino))
 		return false;
 	game->current = mino;
