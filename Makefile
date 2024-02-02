@@ -3,7 +3,7 @@ NAME = tetris
 CFLAGS = -Wall -Wextra -Werror -MMD -MP 
 LIBS = -lncurses
 
-SRCS = tetris.c field.c game_loop.c print.c tetrimino.c timer.c
+SRCS = tetris.c field.c game.c print.c tetrimino.c timer.c
 OBJS = $(SRCS:.c=.o)
 DEPS = $(OBJS:.o=.d)
 
